@@ -19,14 +19,20 @@ now = datetime.datetime.now()
 
 
 # CONSTANTS
+USE_REAL_DATA = False
 
 NAME = "%d_%d_%d_%d_%d_%d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
+if USE_REAL_DATA: NAME = 'realData'+ NAME
+else: NAME = 'genRandData' + NAME
+
 FILENAME = "logs//" + NAME + ".csv"
 
-print 'Log File Name:', FILENAME,
+print 'Log File Name:', FILENAME
 
-USE_REAL_DATA = True
+if USE_REAL_DATA: print "Using real data from csv files."
+else: print "Using randomly generated data."
+
 
 DAYS = 120 #number of days to run simulation for
 USER_GROWTH_LIMIT = 3 #per block
@@ -49,7 +55,7 @@ R_MIN = -0.1
 #for reward equation
 
 PI = 3.1415926536
-K = 5 * (2.0/PI) #0.1 * (1.0/NUM_OF_DAILY_BLOCKS) * (2.0/math.pi)
+K = (2.0/PI) * (0.125/(365*NUM_OF_DAILY_BLOCKS)) # need to multpily this with supplyCurrent in equation below.
 #12.5% annual growth in supply current, assuming 21 million initial supply current.
 H = float(1e6)
 
@@ -287,8 +293,12 @@ def dailyOperations():
     if USE_REAL_DATA: dailyVolumeOnline = avgHoldings[dayCounter]
     
     deltaT = dailyVolumeOnline - yesterdayVolumeOnline
+    x = deltaT/supplyCurrent
+    # f_deltaT = 0.15 * (2.0/PI) * math.atan(10 * x)
+    f_deltaT = 0.15 * (10 * x)/(1+abs(10*x))
+    # The constant 10 moves the slope's x-axis range to -1 to 1. (see y = arctan(10x), or y = 10x/(1+|10x|)  )
 
-    f_deltaT = 0.15 * (2.0/PI) * math.atan(deltaT/(5e9))
+
 
     rYear = rYearYest - f_deltaT
     
@@ -468,8 +478,13 @@ def blockOperations(userList):
 
 
 ### Reward Section
+    # H = 1 million
+    # K = (2.0 / PI) * (0.125 / (365 * NUM_OF_DAILY_BLOCKS))
+    # What will yesterdayVolume range be?
 
-    reward = K*math.atan(yesterdayVolume/H)
+    x = yesterdayVolume/H
+    # reward = K * supplyCurrent * math.atan(x)
+    reward = K * supplyCurrent * x/(1 + abs(x))
 
     randomlyDetermineWinner(reward, txFees)
 
