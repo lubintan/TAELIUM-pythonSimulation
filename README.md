@@ -1,7 +1,12 @@
-# README #
+## Hi Taelium Boyz ##
 
-Files are located under "Source" in the tab on the left.
+Files for running simulations are located under "Source" in the tab on the left.
+Main purpose of these simulations are to test our formula ideas.
 
-### What is this repository for? ###
+# Issue Tracker #
+Under "Issues" in the tab on the left.
 
-Running simulations to test our formula ideas.
+Thought these might be useful for us to log issues as soon as we think of them so we won't forget, and also to facilitate discussion when we have multiple threads of different issues to discuss.
+
+Feel free to create issues or comment on existing issues. 
+(Don't worry about the various fields, just key in your concern into the title and the description and create the issue.)
