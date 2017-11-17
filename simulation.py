@@ -20,15 +20,16 @@ now = datetime.datetime.now()
 
 # CONSTANTS
 
-NAME = "newR%d_%d_%d_%d_%d_%d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+NAME = "%d_%d_%d_%d_%d_%d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
 FILENAME = "logs//" + NAME + ".csv"
-# FILENAME =  NAME + ".csv"
 
 print 'Log File Name:', FILENAME,
 
-DAYS = 150 #number of days to run simulation for
-# USER_GROWTH_LIMIT = 3 #per block
+USE_REAL_DATA = True
+
+DAYS = 120 #number of days to run simulation for
+USER_GROWTH_LIMIT = 3 #per block
 USER_LIMIT = 1e9
 MAX_DEC_PLACES = 3
 NUM_OF_DAILY_BLOCKS = 1440 #1440
@@ -40,7 +41,7 @@ STARTING_SUPPLY_CAP = float(25e6)
 STARTING_CURRENT_SUPPLY = float(21e6)
 STARTING_INTEREST_RATE = 0.05
 BUFFER_BETWEEN_SUPCAP_AND_SUPCUR = 0
-STARTING_NUM_USERS = 20
+STARTING_NUM_USERS = int(20) #20
 WINDOW = 10
 R_MAX = 0.2
 R_MIN = -0.1
@@ -48,7 +49,8 @@ R_MIN = -0.1
 #for reward equation
 
 PI = 3.1415926536
-K = (0.5/NUM_OF_DAILY_BLOCKS) * (2.0/PI) #0.1 * (1.0/NUM_OF_DAILY_BLOCKS) * (2.0/math.pi)
+K = 5 * (2.0/PI) #0.1 * (1.0/NUM_OF_DAILY_BLOCKS) * (2.0/math.pi)
+#12.5% annual growth in supply current, assuming 21 million initial supply current.
 H = float(1e6)
 
 
@@ -68,20 +70,18 @@ userList = []
 supplyCap = STARTING_SUPPLY_CAP
 supplyCurrent = STARTING_CURRENT_SUPPLY
 yesterdayVolume = 0
+yesterdayVolumeOnline = 0
 writer = None
 rYearYest = STARTING_INTEREST_RATE
+numTxList = []
+avgHoldings = []
+
 
 
 print "###########\t\tINITIALIZE\t\t###########"
 print "Supply Cap:", supplyCap, 'Current Supply:', supplyCurrent
 
-# def calculateMA(list, windowLength, newElement = None):
-#     if (len(list) >= windowLength) and (newElement!=None):
-#         list.pop(0)
-#
-#     if newElement!=None: list.append(newElement)
-#
-#     return (sum(list))/(float(len(list)))
+
 
 def randomlyDetermineWinner(reward, txFees):
     global userList, supplyCap,supplyCurrent
@@ -123,14 +123,11 @@ def transactions(senderIndex, userList):
     return amountToSend
 
 
-
-
-
 def main():
 
     start = time.time()
 
-    global supplyCurrent, userList, dayCounter, writer, transactionsTotalTime, blockTotalTime
+    global supplyCurrent, userList, dayCounter, writer, transactionsTotalTime, blockTotalTime, numTxList, avgHoldings
 
 
 
@@ -169,12 +166,28 @@ def main():
 
         writer.writerow(fieldnames)
 
+    if USE_REAL_DATA:
+        with open('n-transactions.csv', 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+                # prices.append(float(row[2]))
+                numTxList.append(int(float(row[1])))
+
+        with open('SPY (2).csv', 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+
+                this = row[1].replace(',','')
+                avgHoldings.append(float(this))
+
+
     #Initialize userList
     for i in range(STARTING_NUM_USERS):
-        if (i>=0) and (i<=3):
-            userList.append(supplyCurrent * 0.1) #10% to NXT, 10% each to us.
-        else:
-            userList.append((supplyCurrent*0.6) / (STARTING_NUM_USERS-4))
+        # if (i>=0) and (i<=3):
+        #     userList.append(supplyCurrent * 0.1) #10% to NXT, 10% each to us.
+        # else:
+        #     userList.append((supplyCurrent*0.6) / (STARTING_NUM_USERS-4))
+        userList.append((supplyCurrent) / STARTING_NUM_USERS)
 
     # for each in userList:
         # print each
@@ -201,13 +214,12 @@ def main():
         #     print "Time Day", dayCounter," took:", dayTotalTime, 's'
         #     print "Day Operations minus BlockTotalTime:", dayTotalTime - blockTotalTime, 's'
 
-
-        sys.stdout.write("\rCalculating... %.2f %% complete. Currently on day %i. No. of Users: %i" % (float(dayCounter)*100.0/(DAYS-1), dayCounter, len(userList)))
+        sys.stdout.write("\rCalculating... %.2f %% complete. Currently on day %i. No. of Users: %i." % (float(dayCounter)*100.0/(DAYS-1), dayCounter, len(userList)))
         sys.stdout.flush()
 
         dayCounter += 1
 
-
+    print
 
 
 
@@ -220,7 +232,8 @@ def main():
 
 def dailyOperations():
     global dayCounter, blockTotalTime,transactionsTotalTime, yesterdayVolume, rYearYest
-    global userList, supplyCurrent, supplyCap, dailyMinusYestVolList, writer
+    global userList, supplyCurrent, supplyCap, dailyMinusYestVolList, writer,  yesterdayVolumeOnline
+
 
     supplyTotal = supplyCurrent + supplyCap
 
@@ -239,13 +252,15 @@ def dailyOperations():
     totalRewardsGivenOut = 0
     totalTxFees = 0
     dailyVolume = 0 ######### DOES REWARD NEED TO BE ADDED TO DAILY VOLUME? ###########
+    dailyVolumeOnline = 0
+
     for i in range (NUM_OF_DAILY_BLOCKS):
 
         # print 'block:', i
 
         # if TIMING_DEBUG: start = time.time()
 
-        blockVolume, reward, txFees = blockOperations(userList) #supplyCurrent updated in this function
+        blockVolume, reward, txFees, blockVolumeOnline = blockOperations(userList) #supplyCurrent updated in this function
 
         # if TIMING_DEBUG:
         #     thisBlockTime = time.time() - start
@@ -256,32 +271,28 @@ def dailyOperations():
         totalRewardsGivenOut += reward
         # totalActiveUsers += activeUsers
         totalTxFees += txFees
-
+        dailyVolumeOnline += blockVolumeOnline
     ###########         end daily blocks      ########################
 
-    # print '########\t\trun blocks\t\t########'
-    # print 'Sum User Balances:', sum(userList), 'S Curr:', supplyCurrent, 'S Cap:', supplyCap
-    # print 'rewards:', totalRewardsGivenOut, 'tx fees:', totalTxFees
-    # print 'current circulation + rewards + Scap == Total?', (supplyTotal == (supplyCurrent + supplyCap))
-    # print (supplyCurrent + supplyCap)
-    # print supplyTotal
+
 
 
     if TIMING_DEBUG: print "Total block time:", blockTotalTime, 's'
     if SHOW_TRANSACTIONS: print "Daily Volume:", dailyVolume
 
 
-    # calculate rYear and rDay
-    # y = (0.15)(2/pi)arctan(x/(.5e7))+.05
-    # x = change in transaction value (total amount transacted today - total amount transacted yesterday)
-    # Take PI = 3.1415926536 (10 dec places)
+
 #######################################################################################################
 #######################   R EQUATION!!!!##############################################################
-    deltaT = dailyVolume - yesterdayVolume
+    if USE_REAL_DATA: dailyVolumeOnline = avgHoldings[dayCounter]
+    
+    deltaT = dailyVolumeOnline - yesterdayVolumeOnline
 
-    f_deltaT = 0.15 * (2.0/PI) * math.atan(deltaT/(5e8))
+    f_deltaT = 0.15 * (2.0/PI) * math.atan(deltaT/(5e9))
 
     rYear = rYearYest - f_deltaT
+    
+    if dayCounter < 1: rYear = 0.05
 
     if rYear >= R_MAX: rYear = R_MAX
     elif rYear <= R_MIN: rYear = R_MIN
@@ -291,19 +302,13 @@ def dailyOperations():
 ############################################################################################
 
     # get MA of today tx value - yesterday tx value.
-    if len(dailyMinusYestVolList) >= WINDOW:
-        dailyMinusYestVolList.pop(0)
-    dailyMinusYestVolList.append(dailyVolume - yesterdayVolume)
+    # if len(dailyMinusYestVolList) >= WINDOW:
+    #     dailyMinusYestVolList.pop(0)
+    # dailyMinusYestVolList.append(dailyVolume - yesterdayVolume)
+    #
+    # maDailyMinusYestVol = sum(dailyMinusYestVolList) / len(dailyMinusYestVolList)
 
-    maDailyMinusYestVol = sum(dailyMinusYestVolList) / len(dailyMinusYestVolList)
-
-
-    # calculate g.
-
-
-    # g = (rDay*supplyCurrent) + maDailyMinusYestVol
-
-    g = (rDay*supplyCurrent) + deltaT
+    g = (rDay*supplyCurrent) + dailyVolume - yesterdayVolume
 
 
     ## Calculate new Supply Cap.
@@ -396,7 +401,7 @@ def dailyOperations():
     ###Perform calculations for next day's use###
     yesterdayVolume = dailyVolume
     rYearYest = rYear
-
+    yesterdayVolumeOnline = dailyVolumeOnline
 
 def blockOperations(userList):
     global supplyCurrent, supplyCap, transactionsTotalTime
@@ -414,8 +419,8 @@ def blockOperations(userList):
 
     # userGrowthPerBlock = 1e-4
 
-    userGrowthPerBlock = 3
-    numOfNewUsers = random.randint(0, math.ceil(userGrowthPerBlock))
+
+    numOfNewUsers = random.randint(0, math.ceil(USER_GROWTH_LIMIT))
 
     if len(userList) <= USER_LIMIT:
        for each in range(0, numOfNewUsers):
@@ -428,24 +433,18 @@ def blockOperations(userList):
     blockVolume = 0
 
 
-    #Make no. of txs proportional to users. Otherwise daily volume will keep going down if number of txs remain constant while
+    #Make no. of txs proportional to users.
+    # Otherwise daily volume will keep going down if number of txs remain constant while
     # money is spread amongst more and more people.
 
     maxNoOfTxs = int(len(userList)**.5)
 
-    # if maxNoOfTxs > TRANS_LIMIT: maxNoOfTxs = TRANS_LIMIT
-    # print 'maxNoOfTxs:' , maxNoOfTxs
+    if USE_REAL_DATA: numberOfTransactionsThisBlock = numTxList[dayCounter] / NUM_OF_DAILY_BLOCKS
+    else: numberOfTransactionsThisBlock = random.randint(0,maxNoOfTxs+1)
 
-    numberOfTransactionsThisBlock = random.randint(0,maxNoOfTxs+1)
     txFees = 0
 
-    # print numberOfTransactionsThisBlock
-
     transactingUsers = []
-
-    # print numberOfTransactionsThisBlock
-
-    # if TIMING_DEBUG: transactionsTotalTime = 0
 
     for each in range(0, numberOfTransactionsThisBlock):
 
@@ -455,8 +454,6 @@ def blockOperations(userList):
        while (userList[txSenderIndex] <= TX_FEE):
            txSenderIndex = random.randint(0, len(userList)-1)
 
-       # if TIMING_DEBUG: start = time.time()
-
        amountTransactedByThisSender = transactions(txSenderIndex,userList)
        blockVolume += amountTransactedByThisSender
        txFees += TX_FEE
@@ -464,27 +461,13 @@ def blockOperations(userList):
        if not (txSenderIndex in transactingUsers):
            transactingUsers.append(txSenderIndex)
 
-       # if TIMING_DEBUG: transactionsTotalTime += time.time() - start
-
-
-       # raw_input()
-       # print 'amount:', amountTransactedByThisSender, 'blockVolume:', blockVolume
-
-    # if TIMING_DEBUG:print "Transactions took:", transactionsTotalTime, 's'
-
     if SHOW_TRANSACTIONS:
        print "no.of tx:", numberOfTransactionsThisBlock
        print "block tx volume:", blockVolume
 
 
 
-    #winner
-    # print 'K * cap - current:', K*(supplyCap-supplyCurrent), '\tactive users:' ,activeUsers, "K:", K
-
-    #active users = people ONLINE in last block
-    #use a random number here between transacting users and total users
-
-    # activeUsers = random.randint(len(transactingUsers),len(userList))
+### Reward Section
 
     reward = K*math.atan(yesterdayVolume/H)
 
@@ -504,10 +487,16 @@ def blockOperations(userList):
        print '********** End Block **********'
        print
 
+# the new online people weighted by their stake part to be used in interest rate equation
+    peopleOnline = random.randint(5, len(userList))
+    
+    blockVolumeOnline = 0
+    
+    for i in range(peopleOnline):
+        blockVolumeOnline += userList[i]
 
 
-    return blockVolume, reward, txFees
-
+    return blockVolume, reward, txFees, blockVolumeOnline
 
 
 
