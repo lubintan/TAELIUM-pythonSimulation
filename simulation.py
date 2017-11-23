@@ -20,10 +20,11 @@ now = datetime.datetime.now()
 
 # CONSTANTS
 USE_REAL_DATA = True
-
+USE_REAL_TXVALUE_DATA = True
 NAME = "%d_%d_%d_%d_%d_%d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
 if USE_REAL_DATA: NAME = 'realData'+ NAME
+if USE_REAL_TXVALUE_DATA: NAME = 'realTX' + NAME
 else: NAME = 'genRandData' + NAME
 
 FILENAME = "logs//" + NAME + ".csv"
@@ -34,7 +35,7 @@ if USE_REAL_DATA: print "Using real data from csv files."
 else: print "Using randomly generated data."
 
 
-DAYS = 120 #number of days to run simulation for
+DAYS = 250 #number of days to run simulation for
 USER_GROWTH_LIMIT = 3 #per block
 USER_LIMIT = 1e9
 MAX_DEC_PLACES = 3
@@ -82,6 +83,7 @@ rYearYest = STARTING_INTEREST_RATE
 numTxList = []
 avgHoldings = []
 listDeltaAvgHoldings = []
+dailyTxValue = []
 
 
 print "###########\t\tINITIALIZE\t\t###########"
@@ -186,6 +188,12 @@ def main():
                 this = row[1].replace(',','')
                 avgHoldings.append(float(this))
 
+    if USE_REAL_TXVALUE_DATA:
+        with open('output-volume.csv', 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+                dailyTxValue.append(float(row[1]))
+
 
     #Initialize userList
     for i in range(STARTING_NUM_USERS):
@@ -273,11 +281,11 @@ def dailyOperations():
         #     blockTotalTime += thisBlockTime
         #     print "Time Block", i, "took:", thisBlockTime, 's'
         #     print "Block Operations minus TxTotalTime:", thisBlockTime - transactionsTotalTime, 's'
-        dailyVolume += blockVolume
+        if not USE_REAL_TXVALUE_DATA: dailyVolume += blockVolume
         totalRewardsGivenOut += reward
         # totalActiveUsers += activeUsers
         totalTxFees += txFees
-        dailyVolumeOnline += blockVolumeOnline
+        if not USE_REAL_DATA: dailyVolumeOnline += blockVolumeOnline
     ###########         end daily blocks      ########################
 
 
@@ -330,6 +338,8 @@ def dailyOperations():
     # dailyMinusYestVolList.append(dailyVolume - yesterdayVolume)
     #
     # maDailyMinusYestVol = sum(dailyMinusYestVolList) / len(dailyMinusYestVolList)
+
+    if USE_REAL_TXVALUE_DATA: dailyVolume = dailyTxValue[dayCounter]
 
     g = (rDay*supplyCurrent) + dailyVolume - yesterdayVolume
 
@@ -469,27 +479,32 @@ def blockOperations(userList):
 
     maxNoOfTxs = int(len(userList)**.5)
 
-    if USE_REAL_DATA: numberOfTransactionsThisBlock = numTxList[dayCounter] / NUM_OF_DAILY_BLOCKS
-    else: numberOfTransactionsThisBlock = random.randint(0,maxNoOfTxs+1)
+    if not USE_REAL_TXVALUE_DATA:
 
-    txFees = 0
+        if USE_REAL_DATA: numberOfTransactionsThisBlock = numTxList[dayCounter] / NUM_OF_DAILY_BLOCKS
+        else: numberOfTransactionsThisBlock = random.randint(0,maxNoOfTxs+1)
 
-    transactingUsers = []
+        txFees = 0
 
-    for each in range(0, numberOfTransactionsThisBlock):
+        transactingUsers = []
 
-       txSenderIndex = random.randint(0, len(userList) - 1)
+        for each in range(0, numberOfTransactionsThisBlock):
 
-       # make sure sender has balance more than TX_FEE
-       while (userList[txSenderIndex] <= TX_FEE):
-           txSenderIndex = random.randint(0, len(userList)-1)
+           txSenderIndex = random.randint(0, len(userList) - 1)
 
-       amountTransactedByThisSender = transactions(txSenderIndex,userList)
-       blockVolume += amountTransactedByThisSender
-       txFees += TX_FEE
+           # make sure sender has balance more than TX_FEE
+           while (userList[txSenderIndex] <= TX_FEE):
+               txSenderIndex = random.randint(0, len(userList)-1)
 
-       if not (txSenderIndex in transactingUsers):
-           transactingUsers.append(txSenderIndex)
+           amountTransactedByThisSender = transactions(txSenderIndex,userList)
+           blockVolume += amountTransactedByThisSender
+           txFees += TX_FEE
+
+           if not (txSenderIndex in transactingUsers):
+               transactingUsers.append(txSenderIndex)
+    else:
+        blockVolume = None
+        txFees = 0
 
     if SHOW_TRANSACTIONS:
        print "no.of tx:", numberOfTransactionsThisBlock
@@ -523,12 +538,15 @@ def blockOperations(userList):
        print
 
 # the new online people weighted by their stake part to be used in interest rate equation
-    peopleOnline = random.randint(5, len(userList))
+    if not USE_REAL_DATA:
+        peopleOnline = random.randint(5, len(userList))
     
-    blockVolumeOnline = 0
-    
-    for i in range(peopleOnline):
-        blockVolumeOnline += userList[i]
+        blockVolumeOnline = 0
+
+        for i in range(peopleOnline):
+            blockVolumeOnline += userList[i]
+
+    else: blockVolumeOnline = None
 
 
     return blockVolume, reward, txFees, blockVolumeOnline
