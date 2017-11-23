@@ -426,6 +426,14 @@ def dailyOperations():
     rYearYest = rYear
     yesterdayVolumeOnline = dailyVolumeOnline
 
+    if USE_REAL_DATA:
+        numOfNewUsers = random.randint(0, math.ceil(USER_GROWTH_LIMIT))
+
+        if len(userList) <= USER_LIMIT:
+            for each in range(0, numOfNewUsers):
+                userList.append(0)
+
+
 def blockOperations(userList):
     global supplyCurrent, supplyCap, transactionsTotalTime
 
@@ -442,13 +450,12 @@ def blockOperations(userList):
 
     # userGrowthPerBlock = 1e-4
 
+    if not USE_REAL_DATA:
+        numOfNewUsers = random.randint(0, math.ceil(USER_GROWTH_LIMIT))
 
-    numOfNewUsers = random.randint(0, math.ceil(USER_GROWTH_LIMIT))
-
-    if len(userList) <= USER_LIMIT:
-       for each in range(0, numOfNewUsers):
-           # newUser = user()
-           userList.append(0)
+        if len(userList) <= USER_LIMIT:
+           for each in range(0, numOfNewUsers):
+               userList.append(0)
 
 
 
