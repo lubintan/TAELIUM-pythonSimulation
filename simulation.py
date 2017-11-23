@@ -19,7 +19,7 @@ now = datetime.datetime.now()
 
 
 # CONSTANTS
-USE_REAL_DATA = False
+USE_REAL_DATA = True
 
 NAME = "%d_%d_%d_%d_%d_%d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
 
@@ -55,7 +55,7 @@ R_MIN = -0.1
 #for reward equation
 
 PI = 3.1415926536
-K = (2.0/PI) * (0.125/(365*NUM_OF_DAILY_BLOCKS)) # need to multpily this with supplyCurrent in equation below.
+K = (0.125/(365*NUM_OF_DAILY_BLOCKS)) # need to multpily this with supplyCurrent in equation below.
 #12.5% annual growth in supply current, assuming 21 million initial supply current.
 H = float(1e6)
 
@@ -81,7 +81,7 @@ writer = None
 rYearYest = STARTING_INTEREST_RATE
 numTxList = []
 avgHoldings = []
-
+listDeltaAvgHoldings = []
 
 
 print "###########\t\tINITIALIZE\t\t###########"
@@ -159,7 +159,7 @@ def main():
         fieldnames = ['Day', 'Yesterday Tx Value', 'Today Tx Value', 'deltaT',
                       'Supply Current', 'Supply Cap','Spread','g', 'r (yearly)',
                       'r(daily)', 'average reward per block', 'f_deltaT', 'rewards given out per day', 'no. of users',
-                      'tx fees paid per day','Total Daily Interest Paid Out']
+                      'MA DeltaT','Total Daily Interest Paid Out']
         # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer = csv.writer(f)
 
@@ -293,10 +293,19 @@ def dailyOperations():
     if USE_REAL_DATA: dailyVolumeOnline = avgHoldings[dayCounter]
     
     deltaT = dailyVolumeOnline - yesterdayVolumeOnline
-    x = deltaT/supplyCurrent
+
+    if len(listDeltaAvgHoldings) >= WINDOW:
+        listDeltaAvgHoldings.pop(0)
+    listDeltaAvgHoldings.append(deltaT)
+
+    maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
+
+    x = maDeltaAvgHoldings/supplyCurrent
     # f_deltaT = 0.15 * (2.0/PI) * math.atan(10 * x)
-    f_deltaT = 0.15 * (10 * x)/(1+abs(10*x))
+    # f_deltaT = 0.15 * (10 * x)/(1+abs(10*x))
     # The constant 10 moves the slope's x-axis range to -1 to 1. (see y = arctan(10x), or y = 10x/(1+|10x|)  )
+
+    f_deltaT = 0.15 * x
 
 
 
@@ -399,7 +408,7 @@ def dailyOperations():
                     f_deltaT,
                    totalRewardsGivenOut,
                    len(userList),
-                    totalTxFees,
+                    maDeltaAvgHoldings,
                     dailyInterestPaidOut
 
                     ]
