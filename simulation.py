@@ -296,9 +296,13 @@ def dailyOperations():
 
     if len(listDeltaAvgHoldings) >= WINDOW:
         listDeltaAvgHoldings.pop(0)
-    listDeltaAvgHoldings.append(deltaT)
+        listDeltaAvgHoldings.append(deltaT)
+        maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
+    else:
+        listDeltaAvgHoldings.append(deltaT * (dayCounter+1)/WINDOW)
+        maDeltaAvgHoldings = sum(listDeltaAvgHoldings)
 
-    maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
+    # maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
 
     x = maDeltaAvgHoldings/supplyCurrent
     # f_deltaT = 0.15 * (2.0/PI) * math.atan(10 * x)
