@@ -35,6 +35,21 @@ if USE_REAL_DATA: print "Using real data from csv files."
 else: print "Using randomly generated data."
 
 
+# Select file for simulating average holdings
+DJI = 1
+SPY = 2
+VRX = 3
+
+AVG_HOLD_DATA_FILE_SELECT = VRX ####    make selection here.    ####
+
+if AVG_HOLD_DATA_FILE_SELECT == DJI:
+    avgHoldDataFileName = "DJI (1).csv"
+elif AVG_HOLD_DATA_FILE_SELECT == SPY:
+    avgHoldDataFileName = "SPY (2).csv"
+else:
+    avgHoldDataFileName = "VRX (1).csv"
+
+
 DAYS = 250 #number of days to run simulation for
 USER_GROWTH_LIMIT = 3 #per block
 USER_LIMIT = 1e9
@@ -181,7 +196,7 @@ def main():
                 # prices.append(float(row[2]))
                 numTxList.append(int(float(row[1])))
 
-        with open('SPY (2).csv', 'rb') as csvfile:
+        with open(avgHoldDataFileName, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
 
