@@ -304,26 +304,22 @@ def dailyOperations():
 
     if len(listDeltaAvgHoldings) >= WINDOW:
         listDeltaAvgHoldings.pop(0)
+
+    if dayCounter >= 1:
         listDeltaAvgHoldings.append(deltaT)
         maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
+        x = maDeltaAvgHoldings/supplyCurrent
+        f_deltaT = 0.15 * (x)/(1+abs(x))
+        rYear = rYearYest - f_deltaT
+
+        # f_deltaT = 0.15 * x
+
     else:
-        listDeltaAvgHoldings.append(deltaT * (dayCounter+1)/WINDOW)
-        maDeltaAvgHoldings = sum(listDeltaAvgHoldings)
+        rYear = 0.05
 
-    # maDeltaAvgHoldings = sum(listDeltaAvgHoldings) / float(len(listDeltaAvgHoldings))
+        f_deltaT = 0 # given value to satisfy plotting function
+        maDeltaAvgHoldings = 0 # given value to satisfy plotting function
 
-    x = maDeltaAvgHoldings/supplyCurrent
-    # f_deltaT = 0.15 * (2.0/PI) * math.atan(10 * x)
-    # f_deltaT = 0.15 * (10 * x)/(1+abs(10*x))
-    # The constant 10 moves the slope's x-axis range to -1 to 1. (see y = arctan(10x), or y = 10x/(1+|10x|)  )
-
-    f_deltaT = 0.15 * x
-
-
-
-    rYear = rYearYest - f_deltaT
-    
-    if dayCounter < 1: rYear = 0.05
 
     if rYear >= R_MAX: rYear = R_MAX
     elif rYear <= R_MIN: rYear = R_MIN
