@@ -1,16 +1,23 @@
-# Hi Taelium Boyz #
+# Overview
+This is an independent PoS blockchain forked from Jelurida's NXT source code.
 
-## Issue Tracker ##
-Under "Issues" in the tab on the left.
+Key Features: 
+*	Adapted an existing blockchain implementation in Java to form a new and independent blockchain. 
+*	Utilized Amazon Web Services (AWS) EC2 instances to run nodes.
+*	Wrote Python scripts to automate testing node deployment.
+*	Utilized Selenium to simulate user input.
+*	Employed tools like JConsole to help with optimizing performance.
+*	Developed a Telegram bot for blockchain currency distribution.
+*	Refined the user interface for the blockchain client. 
 
-Thought these might be useful for us to log issues as soon as we think of them so we won't forget, and also to facilitate discussion when we have multiple threads of different issues to discuss.
 
-Feel free to create issues or comment on existing issues. 
-(Don't worry about the various fields, just key in your concern into the title and the description and create the issue.)
+# Project Repo
+There are a total of [7 repos](https://github.com/search?q=user%3Alubintan+taelium) related to this project, with the main one being [TAELIUM-taelium](https://github.com/lubintan/TAELIUM-taelium).
 
-## Python Simulation Code ##
-Files for running simulations are located under "Source" in the tab on the left.
-Main purpose of these simulations are to test our formula ideas.
+The main working repo for this project was originally hosted [here](https://bitbucket.org/lubinium/taelium/src/master/).
+
+# Purpose
+Main purpose of these simulations are to test our formula ideas for the interest rate and to determine values for related constants.
 
 
 
