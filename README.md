@@ -16,7 +16,7 @@ There are a total of [7 repos](https://github.com/search?q=user%3Alubintan+taeli
 
 The main working repo for this project was originally hosted [here](https://bitbucket.org/lubinium/taelium/src/master/).
 
-# Purpose
+## Purpose
 Main purpose of these simulations are to test our formula ideas for the interest rate and to determine values for related constants.
 
 
